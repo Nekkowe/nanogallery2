@@ -871,6 +871,10 @@
           
           //--- check if 1 of current item's tags is selected (tag filter)
           NGY2Item.prototype.checkTagFilter = function() {
+            console.log("checkTagFilter for item " + this.title + "...")
+            console.log(this.G)
+            console.log(this.G.GOM.tagFilters)
+            
             if( this.G.galleryFilterTags.Get() != false && this.album().albumTagList.length > 0 ) {
               if( this.G.O.thumbnailLevelUp && this.kind == 'albumUp' ) {
                 return true;
@@ -891,8 +895,50 @@
               }
               return found;
             }
-            else
-              return true;
+            
+            //  Check tag blacklist
+            if ( this.G.GOM.tagFilters?.blacklist?.length ) {
+              for (const blacklistedTag of this.G.GOM.tagFilters.blacklist) {
+                if(this.tags.includes(blacklistedTag)){
+                  return false;
+                }
+              }
+            }
+            
+            // Check tag whitelist
+            if ( this.G.GOM.tagFilters?.whitelist?.length ) {
+              switch(this.G.GOM.tagFilters.whitelistMode){
+                // Mode "all": only show item if ALL whitelisted tags are present
+                case 'all': {
+                  for ( const whitelistedTag of this.G.GOM.tagFilters.whitelist ) {
+                    console.log("Checking item " + this.title + " for whitelisted tag " + whitelistedTag + "...")
+                    if (this.tags.includes(whitelistedTag)){
+                      console.log("Found!")
+                    } else {
+                      console.log("Not found, rejecting item...")
+                      return false
+                    }
+                  }
+                  break;
+                }
+                // Mode "any": show item if ANY whitelisted tags are present
+                case 'any': {
+                  for ( const whitelistedTag of this.G.GOM.tagFilters.whitelist ) {
+                    console.log("Checking item " + this.title + " for whitelisted tag " + whitelistedTag + "...")
+                    if (this.tags.includes(whitelistedTag)){
+                      console.log("Found, accepting item...")
+                      return true
+                    } else {
+                      console.log("Not found.")
+                    }
+                  }
+                  break;
+                }
+              }
+
+            }
+
+            return true;
           };
           
           //--- check if 1 of current item's tags is found using API search
@@ -1640,6 +1686,10 @@
         case 'search2Execute':
           return nG2.Search2Execute();
           break;
+
+        case 'setTagFilters':
+          return nG2.setTagFilters(option);
+          break;
           
         case 'refresh':
           nG2.Refresh();
@@ -1982,6 +2032,24 @@
       return CountItemsToDisplay( gIdx );
     };
     
+    /**
+     * setTagFilters - set tag blacklist, whitelist, and whitelist mode
+     * 
+     * filters = {blacklist: string[], whitelist: string[], whitelistMode: string}
+     */
+    this.setTagFilters = function(filters) {
+      G.GOM.tagFilters = {
+        blacklist: filters.blacklist || [],
+        whitelist: filters.whitelist || [],
+        whitelistMode: filters.whitelistMode || "all"
+      };
+
+      console.log(G.GOM.tagFilters)
+
+      var gIdx = G.GOM.albumIdx;
+      GalleryRender( G.GOM.albumIdx );
+      return CountItemsToDisplay( gIdx );
+    }
     
     /**
      * Destroy the current gallery
@@ -2097,7 +2165,7 @@
     // author: underscore.js - http://underscorejs.org/docs/underscore.html
     // Returns a function, that, when invoked, will only be triggered at most once during a given window of time.
     // Normally, the throttled function will run as much as it can, without ever going more than once per wait duration;
-    // but if you’d like to disable the execution on the leading edge, pass {leading: false}.
+    // but if youï¿½d like to disable the execution on the leading edge, pass {leading: false}.
     // To disable execution on the trailing edge, ditto.
     var throttle = function(func, wait, options) {
       var context, args, result;
@@ -7888,7 +7956,7 @@
         };
       }
 
-      // requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
+      // requestAnimationFrame polyfill by Erik Mï¿½ller. fixes from Paul Irish and Tino Zijdel
       // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
       // http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
       // MIT license
@@ -8396,7 +8464,7 @@
       var vimg = new VImg(ngy2ItemIdx);
       G.VOM.items.push(vimg);
       items.push(G.I[ngy2ItemIdx]);
-      //TODO -> danger? -> pourquoi reconstruire la liste si déjà ouvert (back/forward)     
+      //TODO -> danger? -> pourquoi reconstruire la liste si dï¿½jï¿½ ouvert (back/forward)     
       var l = G.I.length;
       for( let idx = ngy2ItemIdx+1; idx < l ; idx++) {
         let item = G.I[idx];
